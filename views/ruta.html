@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa del Tesoro Interactivo</title>
+    <link rel="stylesheet" href="../styles/treasure-map.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #8B4513, #D2691E);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #F4E4BC;
+            border: 8px solid #8B4513;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .title {
+            text-align: center;
+            color: #8B4513;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(45deg, #90EE90, #228B22);
+            border: 4px solid #8B4513;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .path {
+            position: absolute;
+            width: 6px;
+            background: #8B4513;
+            z-index: 1;
+        }
+
+        .path-horizontal {
+            height: 6px;
+            width: 150px;
+        }
+
+        .path-vertical {
+            width: 6px;
+            height: 100px;
+        }
+
+        /* Rutas específicas */
+        .path1 { top: 80px; left: 100px; }
+        .path2 { top: 80px; left: 250px; height: 6px; width: 100px; }
+        .path3 { top: 80px; left: 350px; width: 6px; height: 120px; }
+        .path4 { top: 200px; left: 350px; height: 6px; width: 150px; }
+        .path5 { top: 200px; left: 500px; width: 6px; height: 100px; }
+        .path6 { top: 300px; left: 500px; height: 6px; width: 120px; }
+
+        .checkpoint {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 3;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .checkpoint.inactive {
+            background: #666;
+            transform: scale(0.8);
+        }
+
+        .checkpoint.active {
+            background: #FFD700;
+            color: #8B4513;
+            transform: scale(1.1);
+            animation: pulse 1s infinite;
+        }
+
+        .checkpoint.completed {
+            background: #32CD32;
+            transform: scale(1);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .character {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #FF6B6B;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.8s ease-in-out;
+            z-index: 4;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border: 3px solid #fff;
+        }
+
+        .character::before {
+            content: '🏃‍♂️';
+            font-size: 24px;
+        }
+
+        .treasure {
+            position: absolute;
+            top: 350px;
+            left: 600px;
+            width: 60px;
+            height: 60px;
+            background: #FFD700;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            z-index: 2;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            animation: treasure-glow 2s infinite;
+            cursor: pointer;
+        }
+
+        .treasure::before {
+            content: '💑';
+        }
+
+        @keyframes treasure-glow {
+            0%, 100% { transform: scale(1); box-shadow: 0 6px 12px rgba(255,215,0,0.3); }
+            50% { transform: scale(1.1); box-shadow: 0 8px 16px rgba(255,215,0,0.6); }
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: #8B4513;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            background: #A0522D;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .instructions {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #8B4513;
+        }
+
+        .instructions h3 {
+            color: #8B4513;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            text-align: center;
+            font-size: 18px;
+            color: #8B4513;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .decorations {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .tree {
+            position: absolute;
+            font-size: 30px;
+            z-index: 1;
+        }
+
+        .tree1 { top: 20px; left: 50px; }
+        .tree2 { top: 150px; left: 200px; }
+        .tree3 { top: 250px; left: 100px; }
+        .tree4 { top: 50px; right: 50px; }
+
+        .mountain {
+            position: absolute;
+            top: 10px;
+            right: 100px;
+            font-size: 40px;
+            z-index: 1;
+        }
+
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #32CD32;
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        /* Estilos para el botón de familia */
+        .family-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #FF69B4;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: family-pulse 2s infinite;
+        }
+
+        .family-btn:hover {
+            transform: scale(1.1);
+            background: #FF1493;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        @keyframes family-pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 0 6px 12px rgba(255,105,180,0.5);
+            }
+        }
+
+        /* Estilos para el botón de infancia */
+        .childhood-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #4169E1;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: childhood-pulse 2s infinite;
+        }
+
+        .childhood-btn:hover {
+            transform: scale(1.1);
+            background: #0000FF;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        /* Estilos para el botón de juventud */
+        .youth-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #32CD32;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: youth-pulse 2s infinite;
+        }
+
+        .youth-btn:hover {
+            transform: scale(1.1);
+            background: #228B22;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        /* Estilos para el botón de universidad */
+        .university-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #FF8C00;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: university-pulse 2s infinite;
+        }
+
+        .university-btn:hover {
+            transform: scale(1.1);
+            background: #FF7F00;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        @keyframes university-pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 0 6px 12px rgba(255,140,0,0.5);
+            }
+        }
+
+        /* Estilos para el botón de diseño web */
+        .webdesign-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #9932CC;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: webdesign-pulse 2s infinite;
+        }
+
+        .webdesign-btn:hover {
+            transform: scale(1.1);
+            background: #8A2BE2;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        @keyframes webdesign-pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 0 6px 12px rgba(153,50,204,0.5);
+            }
+        }
+
+        /* Estilos para el botón de programación */
+        .programming-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #DC143C;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: programming-pulse 2s infinite;
+        }
+
+        .programming-btn:hover {
+            transform: scale(1.1);
+            background: #B22222;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        @keyframes programming-pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 0 6px 12px rgba(220,20,60,0.5);
+            }
+        }
+
+        /* Estilos para el botón de tecnología */
+        .tech-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #1E90FF;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: tech-pulse 2s infinite;
+        }
+
+        .tech-btn:hover {
+            transform: scale(1.1);
+            background: #0080FF;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        @keyframes tech-pulse {
+            0%, 100% { 
+                transform: scale(1); 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+            50% { 
+                transform: scale(1.05); 
+                box-shadow: 0 6px 12px rgba(30,144,255,0.5);
+            }
+        }
+
+        /* Estilos para el modal de familia */
+        .family-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Estilos para el modal de infancia */
+        .childhood-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .childhood-modal .modal-content {
+            background: linear-gradient(135deg, #E6F3FF, #F0F8FF);
+            border: 6px solid #4169E1;
+        }
+
+        .childhood-modal .modal-header {
+            background: #4169E1;
+        }
+
+        .childhood-section {
+            margin-bottom: 30px;
+        }
+
+        .childhood-section h3 {
+            color: #4169E1;
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #87CEEB;
+            padding-bottom: 10px;
+        }
+
+        .childhood-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 15px;
+            border: 2px solid #87CEEB;
+            transition: transform 0.3s ease;
+        }
+
+        .childhood-item:hover {
+            transform: translateX(10px);
+            box-shadow: 0 4px 8px rgba(65,105,225,0.3);
+        }
+
+        .item-icon {
+            font-size: 40px;
+            margin-right: 20px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-info p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+
+        .item-info strong {
+            color: #4169E1;
+            font-size: 18px;
+        }
+
+        .childhood-group {
+            display: grid;
+            gap: 15px;
+        }
+
+        .childhood-message {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #E0E6FF, #F0F4FF);
+            border-radius: 15px;
+            border: 2px solid #4169E1;
+        }
+
+        /* Estilos para el modal de juventud */
+        .youth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .youth-modal .modal-content {
+            background: linear-gradient(135deg, #F0FFF0, #E6FFE6);
+            border: 6px solid #32CD32;
+        }
+
+        .youth-modal .modal-header {
+            background: #32CD32;
+        }
+
+        .youth-icons {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+        }
+
+        .icon-item {
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .icon-item:hover {
+            transform: scale(1.1);
+        }
+
+        .icon-item .icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite;
+        }
+
+        .icon-item p {
+            font-size: 16px;
+            font-weight: bold;
+            color: #32CD32;
+            margin: 0;
+        }
+
+        /* Estilos para el modal de universidad */
+        .university-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .university-modal .modal-content {
+            background: linear-gradient(135deg, #FFF8DC, #FFEBCD);
+            border: 6px solid #FF8C00;
+        }
+
+        .university-modal .modal-header {
+            background: #FF8C00;
+        }
+
+        .university-icons {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Estilos para el modal de diseño web */
+        .webdesign-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .webdesign-modal .modal-content {
+            background: linear-gradient(135deg, #F8F0FF, #E6E6FA);
+            border: 6px solid #9932CC;
+        }
+
+        .webdesign-modal .modal-header {
+            background: #9932CC;
+        }
+
+        .webdesign-icons {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+        }
+
+        /* Estilos para el modal de programación */
+        .programming-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .programming-modal .modal-content {
+            background: linear-gradient(135deg, #FFE4E1, #FFF0F5);
+            border: 6px solid #DC143C;
+        }
+
+        .programming-modal .modal-header {
+            background: #DC143C;
+        }
+
+        .programming-icons {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 30px;
+            padding: 20px;
+        }
+
+        /* Estilos para el modal de tecnología */
+        .tech-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .tech-modal .modal-content {
+            background: linear-gradient(135deg, #E0F6FF, #F0F8FF);
+            border: 6px solid #1E90FF;
+        }
+
+        .tech-modal .modal-header {
+            background: #1E90FF;
+        }
+
+        .tech-icons {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Estilos para el modal del tesoro */
+        .treasure-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .treasure-modal .modal-content {
+            background: linear-gradient(135deg, #FFFACD, #FFF8DC);
+            border: 6px solid #FFD700;
+        }
+
+        .treasure-modal .modal-header {
+            background: #FFD700;
+            color: #8B4513;
+        }
+
+        .treasure-icons {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .modal-content {
+            background: #F4E4BC;
+            border: 6px solid #8B4513;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            background: #8B4513;
+            color: white;
+            padding: 20px;
+            border-radius: 14px 14px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+            color: #8B4513;
+        }
+
+        .family-section {
+            margin-bottom: 30px;
+        }
+
+        .family-section h3 {
+            color: #8B4513;
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #D2691E;
+            padding-bottom: 10px;
+        }
+
+        .family-member {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 15px;
+            border: 2px solid #D2691E;
+            transition: transform 0.3s ease;
+        }
+
+        .family-member:hover {
+            transform: translateX(10px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .member-icon {
+            font-size: 40px;
+            margin-right: 20px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-info p {
+            margin: 5px 0;
+            line-height: 1.4;
+        }
+
+        .member-info strong {
+            color: #8B4513;
+            font-size: 18px;
+        }
+
+        .family-group {
+            display: grid;
+            gap: 15px;
+        }
+
+        .family-message {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #FFE4E1, #FFF0F5);
+            border-radius: 15px;
+            border: 2px solid #FF69B4;
+        }
+
+        .family-message p {
+            font-size: 16px;
+            color: #8B4513;
+            margin: 0;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 2px solid #D2691E;
+        }
+
+        /* Responsive para el modal */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+            
+            .family-member {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .member-icon {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            
+            .modal-header h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">🗺️ Mapa del Tesoro Interactivo</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instrucciones:</h3>
+            <p>Haz clic en los puntos numerados en orden para guiar al aventurero hasta el tesoro. ¡Sigue el camino correcto!</p>
+        </div>
+
+        <div class="progress">
+            <span id="progress-text">Progreso: 0/7 puntos completados</span>
+        </div>
+
+        <div class="map-container">
+            <!-- Decoraciones del mapa -->
+            <div class="decorations">
+                <div class="tree tree1">🌲</div>
+                <div class="tree tree2">🌳</div>
+                <div class="tree tree3">🌲</div>
+                <div class="tree tree4">🌳</div>
+                <div class="mountain">⛰️</div>
+            </div>
+
+            <!-- Caminos -->
+            <div class="path path-horizontal path1"></div>
+            <div class="path path-horizontal path2"></div>
+            <div class="path path-vertical path3"></div>
+            <div class="path path-horizontal path4"></div>
+            <div class="path path-vertical path5"></div>
+            <div class="path path-horizontal path6"></div>
+
+            <!-- Puntos de control -->
+            <div class="checkpoint active" data-checkpoint="1" style="top: 55px; left: 75px;">1</div>
+            <div class="checkpoint inactive" data-checkpoint="2" style="top: 55px; left: 225px;">2</div>
+            <div class="checkpoint inactive" data-checkpoint="3" style="top: 55px; left: 325px;">3</div>
+            <div class="checkpoint inactive" data-checkpoint="4" style="top: 175px; left: 325px;">4</div>
+            <div class="checkpoint inactive" data-checkpoint="5" style="top: 175px; left: 475px;">5</div>
+            <div class="checkpoint inactive" data-checkpoint="6" style="top: 275px; left: 475px;">6</div>
+            <div class="checkpoint inactive" data-checkpoint="7" style="top: 275px; left: 595px;">7</div>
+
+            <!-- Botón de familia en el punto 1 -->
+            <button class="family-btn" id="family-btn" onclick="openFamilyModal()" style="top: 110px; left: 75px;" title="Ver mi familia">
+                👨‍👩‍👧‍👦
+            </button>
+
+            <!-- Botón de infancia en el punto 2 -->
+            <button class="childhood-btn" id="childhood-btn" onclick="openChildhoodModal()" style="top: 110px; left: 225px; display: none;" title="Mi infancia">
+                🧒
+            </button>
+
+            <!-- Botón de juventud en el punto 3 -->
+            <button class="youth-btn" id="youth-btn" onclick="openYouthModal()" style="top: 110px; left: 325px; display: none;" title="Mi juventud">
+                🧑
+            </button>
+
+            <!-- Botón de universidad en el punto 4 -->
+            <button class="university-btn" id="university-btn" onclick="openUniversityModal()" style="top: 230px; left: 325px; display: none;" title="Mi universidad">
+                🎓
+            </button>
+
+            <!-- Botón de diseño web en el punto 5 -->
+            <button class="webdesign-btn" id="webdesign-btn" onclick="openWebDesignModal()" style="top: 230px; left: 475px; display: none;" title="Diseño web">
+                🎨
+            </button>
+
+            <!-- Botón de programación en el punto 6 -->
+            <button class="programming-btn" id="programming-btn" onclick="openProgrammingModal()" style="top: 330px; left: 475px; display: none;" title="Programación">
+                💻
+            </button>
+
+            <!-- Botón de tecnología en el punto 7 -->
+            <button class="tech-btn" id="tech-btn" onclick="openTechModal()" style="top: 330px; left: 595px; display: none;" title="Tecnología avanzada">
+                🚀
+            </button>
+
+            <!-- Personaje -->
+            <div class="character" id="character" style="top: 60px; left: 80px;"></div>
+
+            <!-- Tesoro -->
+            <div class="treasure" id="treasure"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="resetGame()">🔄 Reiniciar</button>
+            <button class="btn" onclick="showHint()" id="hint-btn">💡 Pista</button>
+            <button class="btn" onclick="autoPlay()" id="auto-btn">▶️ Auto</button>
+        </div>
+    </div>
+
+    <div class="success-message" id="success-message">
+        <div>🎉 ¡Felicitaciones! 🎉</div>
+        <div>¡Has encontrado el tesoro!</div>
+        <div style="margin-top: 15px;">
+            <button class="btn" onclick="hideSuccess()">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Familia -->
+    <div class="family-modal" id="family-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👨‍👩‍👧‍👦 Mi Familia</h2>
+                <button class="close-btn" onclick="closeFamilyModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="family-section">
+                    <div onclick="showMemberDetails('baby')" style="cursor: pointer; display:flex; gap:10px; justify-content:center">
+                        <div class="member-icon">👨</div>
+                        <div class="member-icon">👩</div>
+                        <div class="member-icon">👧</div>
+                        <div class="member-icon">🧒</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TreasureMap {
+            constructor() {
+                this.currentCheckpoint = 1;
+                this.totalCheckpoints = 7;
+                this.character = document.getElementById('character');
+                this.checkpoints = document.querySelectorAll('.checkpoint');
+                this.progressText = document.getElementById('progress-text');
+                this.isAnimating = false;
+                
+                this.checkpointPositions = [
+                    { top: 60, left: 80 },   // Inicio
+                    { top: 60, left: 230 },  // Checkpoint 2
+                    { top: 60, left: 330 },  // Checkpoint 3
+                    { top: 180, left: 330 }, // Checkpoint 4
+                    { top: 180, left: 480 }, // Checkpoint 5
+                    { top: 280, left: 480 }, // Checkpoint 6
+                    { top: 280, left: 600 }  // Checkpoint 7 (Tesoro)
+                ];
+
+                this.initializeGame();
+            }
+
+            initializeGame() {
+                this.checkpoints.forEach(checkpoint => {
+                    checkpoint.addEventListener('click', (e) => {
+                        this.handleCheckpointClick(e.target);
+                    });
+                });
+
+                this.updateProgress();
+                this.playSound('start');
+            }
+
+            handleCheckpointClick(checkpoint) {
+                if (this.isAnimating) return;
+
+                const checkpointNumber = parseInt(checkpoint.dataset.checkpoint);
+                
+                if (checkpointNumber === this.currentCheckpoint) {
+                    this.moveToCheckpoint(checkpointNumber);
+                } else if (checkpointNumber < this.currentCheckpoint) {
+                    this.showMessage('¡Ya has pasado por ese punto!', 'info');
+                } else {
+                    this.showMessage('¡Debes seguir el orden correcto!', 'warning');
+                    this.shakeCheckpoint(checkpoint);
+                }
+            }
+
+            moveToCheckpoint(checkpointNumber) {
+                this.isAnimating = true;
+                const position = this.checkpointPositions[checkpointNumber - 1];
+                
+                // Manejar botones según el checkpoint
+                this.hideAllButtons();
+                
+                if (checkpointNumber === 1) {
+                    // No mostrar ningún botón al salir del punto 1
+                } else if (checkpointNumber === 2) {
+                    this.showChildhoodButton();
+                } else if (checkpointNumber === 3) {
+                    this.showYouthButton();
+                } else if (checkpointNumber === 4) {
+                    this.showUniversityButton();
+                } else if (checkpointNumber === 5) {
+                    this.showWebDesignButton();
+                } else if (checkpointNumber === 6) {
+                    this.showProgrammingButton();
+                } else if (checkpointNumber === 7) {
+                    this.showTechButton();
+                }
+                
+                // Animar el personaje
+                this.character.style.top = position.top + 'px';
+                this.character.style.left = position.left + 'px';
+
+                // Actualizar estados de checkpoints
+                this.updateCheckpointStates(checkpointNumber);
+
+                setTimeout(() => {
+                    this.currentCheckpoint++;
+                    this.updateProgress();
+                    this.isAnimating = false;
+
+                    if (checkpointNumber === this.totalCheckpoints) {
+                        this.completeGame();
+                    } else {
+                        this.playSound('step');
+                    }
+                }, 800);
+            }
+
+            updateCheckpointStates(completedCheckpoint) {
+                this.checkpoints.forEach((checkpoint, index) => {
+                    const checkpointNum = index + 1;
+                    
+                    if (checkpointNum < completedCheckpoint) {
+                        checkpoint.className = 'checkpoint completed';
+                    } else if (checkpointNum === completedCheckpoint) {
+                        checkpoint.className = 'checkpoint completed';
+                    } else if (checkpointNum === this.currentCheckpoint + 1) {
+                        checkpoint.className = 'checkpoint active';
+                    } else {
+                        checkpoint.className = 'checkpoint inactive';
+                    }
+                });
+            }
+
+            updateProgress() {
+                const completed = this.currentCheckpoint - 1;
+                this.progressText.textContent = `Progreso: ${completed}/${this.totalCheckpoints} puntos completados`;
+            }
+
+            completeGame() {
+                this.playSound('success');
+                
+                // Hacer el tesoro clickeable
+                const treasure = document.getElementById('treasure');
+                treasure.onclick = () => openTreasureModal();
+                
+                setTimeout(() => {
+                    document.getElementById('success-message').style.display = 'block';
+                }, 500);
+            }
+
+            resetGame() {
+                this.currentCheckpoint = 1;
+                this.isAnimating = false;
+                
+                // Resetear posición del personaje
+                this.character.style.top = '60px';
+                this.character.style.left = '80px';
+
+                // Resetear checkpoints
+                this.checkpoints.forEach((checkpoint, index) => {
+                    if (index === 0) {
+                        checkpoint.className = 'checkpoint active';
+                    } else {
+                        checkpoint.className = 'checkpoint inactive';
+                    }
+                });
+
+                // Mostrar solo el botón de familia y ocultar todos los demás
+                this.hideAllButtons();
+                this.showFamilyButton();
+
+                // Ocultar mensaje de éxito
+                document.getElementById('success-message').style.display = 'none';
+
+                this.updateProgress();
+                this.playSound('start');
+            }
+
+            shakeCheckpoint(checkpoint) {
+                checkpoint.style.animation = 'none';
+                setTimeout(() => {
+                    checkpoint.style.animation = 'shake 0.5s ease-in-out';
+                }, 10);
+            }
+
+            showHint() {
+                const nextCheckpoint = this.currentCheckpoint;
+                if (nextCheckpoint <= this.totalCheckpoints) {
+                    const hintCheckpoint = document.querySelector(`[data-checkpoint="${nextCheckpoint}"]`);
+                    hintCheckpoint.style.animation = 'pulse 0.5s ease-in-out 3';
+                    this.showMessage(`¡El siguiente punto es el número ${nextCheckpoint}!`, 'info');
+                }
+            }
+
+            autoPlay() {
+                if (this.isAnimating) return;
+                
+                const autoButton = document.getElementById('auto-btn');
+                autoButton.disabled = true;
+                autoButton.textContent = '⏳ Ejecutando...';
+
+                this.autoPlayStep();
+            }
+
+            autoPlayStep() {
+                if (this.currentCheckpoint <= this.totalCheckpoints && !this.isAnimating) {
+                    const currentCheckpointElement = document.querySelector(`[data-checkpoint="${this.currentCheckpoint}"]`);
+                    this.handleCheckpointClick(currentCheckpointElement);
+                    
+                    setTimeout(() => {
+                        if (this.currentCheckpoint <= this.totalCheckpoints) {
+                            this.autoPlayStep();
+                        } else {
+                            const autoButton = document.getElementById('auto-btn');
+                            autoButton.disabled = false;
+                            autoButton.textContent = '▶️ Auto';
+                        }
+                    }, 1200);
+                } else {
+                    const autoButton = document.getElementById('auto-btn');
+                    autoButton.disabled = false;
+                    autoButton.textContent = '▶️ Auto';
+                }
+            }
+
+            showMessage(message, type) {
+                // Crear elemento de mensaje temporal
+                const messageDiv = document.createElement('div');
+                messageDiv.textContent = message;
+                messageDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    color: white;
+                    font-weight: bold;
+                    z-index: 1000;
+                    animation: slideDown 0.3s ease-out;
+                    background: ${type === 'warning' ? '#FF6B6B' : type === 'info' ? '#4ECDC4' : '#32CD32'};
+                `;
+
+                document.body.appendChild(messageDiv);
+
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 2000);
+            }
+
+            playSound(type) {
+                // Simulación de sonidos con vibración en dispositivos móviles
+                if (navigator.vibrate) {
+                    switch(type) {
+                        case 'step':
+                            navigator.vibrate(100);
+                            break;
+                        case 'success':
+                            navigator.vibrate([100, 50, 100, 50, 200]);
+                            break;
+                        case 'start':
+                            navigator.vibrate(50);
+                            break;
+                    }
+                }
+            }
+            
+            hideAllButtons() {
+                const buttons = [
+                    'family-btn', 'childhood-btn', 'youth-btn', 
+                    'university-btn', 'webdesign-btn', 'programming-btn', 'tech-btn'
+                ];
+                buttons.forEach(btnId => {
+                    const btn = document.getElementById(btnId);
+                    if (btn) btn.style.display = 'none';
+                });
+            }
+
+            showFamilyButton() {
+                const familyBtn = document.getElementById('family-btn');
+                if (familyBtn) {
+                    familyBtn.style.display = 'flex';
+                }
+            }
+            
+            hideFamilyButton() {
+                const familyBtn = document.getElementById('family-btn');
+                if (familyBtn) {
+                    familyBtn.style.display = 'none';
+                }
+            }
+
+            showChildhoodButton() {
+                const childhoodBtn = document.getElementById('childhood-btn');
+                if (childhoodBtn) {
+                    childhoodBtn.style.display = 'flex';
+                }
+            }
+
+            hideChildhoodButton() {
+                const childhoodBtn = document.getElementById('childhood-btn');
+                if (childhoodBtn) {
+                    childhoodBtn.style.display = 'none';
+                }
+            }
+
+            showYouthButton() {
+                const youthBtn = document.getElementById('youth-btn');
+                if (youthBtn) {
+                    youthBtn.style.display = 'flex';
+                }
+            }
+
+            hideYouthButton() {
+                const youthBtn = document.getElementById('youth-btn');
+                if (youthBtn) {
+                    youthBtn.style.display = 'none';
+                }
+            }
+
+            showUniversityButton() {
+                const universityBtn = document.getElementById('university-btn');
+                if (universityBtn) {
+                    universityBtn.style.display = 'flex';
+                }
+            }
+
+            showWebDesignButton() {
+                const webdesignBtn = document.getElementById('webdesign-btn');
+                if (webdesignBtn) {
+                    webdesignBtn.style.display = 'flex';
+                }
+            }
+
+            showProgrammingButton() {
+                const programmingBtn = document.getElementById('programming-btn');
+                if (programmingBtn) {
+                    programmingBtn.style.display = 'flex';
+                }
+            }
+
+            showTechButton() {
+                const techBtn = document.getElementById('tech-btn');
+                if (techBtn) {
+                    techBtn.style.display = 'flex';
+                }
+            }
+        }
+
+        // Inicializar el juego
+        let game;
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new TreasureMap();
+        });
+
+        // Funciones globales para los botones
+        function resetGame() {
+            game.resetGame();
+        }
+
+        function showHint() {
+            game.showHint();
+        }
+
+        function autoPlay() {
+            game.autoPlay();
+        }
+
+        function hideSuccess() {
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // Funciones para el modal de familia
+        function openFamilyModal() {
+            document.getElementById('family-modal').style.display = 'flex';
+            // Agregar efecto de sonido/vibración
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+        }
+
+        function closeFamilyModal() {
+            document.getElementById('family-modal').style.display = 'none';
+        }
+
+        // Funciones para el modal de infancia
+        function openChildhoodModal() {
+            document.getElementById('childhood-modal').style.display = 'flex';
+            // Agregar efecto de sonido/vibración
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        }
+
+        function closeChildhoodModal() {
+            document.getElementById('childhood-modal').style.display = 'none';
+        }
+
+        // Función para mostrar detalles de la infancia
+        function showChildhoodDetails(itemType) {
+            const details = {
+                child: {
+                    title: "🧒 El Niño Interior",
+                    description: "Esa parte de nosotros que nunca deja de soñar, explorar y ver el mundo con ojos de asombro. La infancia es donde nacen nuestros primeros sueños y se forjan nuestros valores más profundos.",
+                    traits: ["Curioso", "Imaginativo", "Espontáneo", "Alegre", "Inocente"]
+                },
+                school: {
+                    title: "🏫 El Colegio",
+                    description: "Más que un lugar de aprendizaje, fue el escenario de mis primeras amistades, descubrimientos y desafíos. Donde aprendí no solo matemáticas y ciencias, sino también sobre la vida, la amistad y el trabajo en equipo.",
+                    traits: ["Aprendizaje", "Amistad", "Disciplina", "Crecimiento", "Descubrimiento"]
+                },
+                soccer: {
+                    title: "⚽ Fútbol",
+                    description: "Mi primera gran pasión deportiva. En cada partido aprendí sobre el trabajo en equipo, la perseverancia y la alegría de compartir victorias y derrotas con amigos. El fútbol me enseñó que ganar y perder son parte de la vida.",
+                    traits: ["Pasión", "Trabajo en equipo", "Perseverancia", "Diversión", "Competencia sana"]
+                },
+                bicycle: {
+                    title: "🚲 Mi Bicicleta",
+                    description: "Símbolo de libertad e independencia. Con ella exploré mi barrio, viví aventuras increíbles y sentí por primera vez la sensación de volar. Cada paseo era una nueva aventura esperando ser descubierta.",
+                    traits: ["Libertad", "Aventura", "Independencia", "Exploración", "Diversión"]
+                }
+            };
+            
+            const detail = details[itemType];
+            if (detail) {
+                // Crear un modal personalizado más bonito que alert
+                showCustomAlert(detail.title, detail.description, detail.traits);
+            }
+        }
+
+        // Función para mostrar un alert personalizado
+        function showCustomAlert(title, description, traits) {
+            const alertDiv = document.createElement('div');
+            alertDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                z-index: 3000;
+                max-width: 500px;
+                width: 90%;
+                border: 3px solid #4169E1;
+            `;
+            
+            alertDiv.innerHTML = `
+                <h3 style="color: #4169E1; margin-bottom: 15px; text-align: center;">${title}</h3>
+                <p style="color: #333; line-height: 1.6; margin-bottom: 20px;">${description}</p>
+                <div style="margin-bottom: 20px;">
+                    <strong style="color: #4169E1;">Características:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                        ${traits.map(trait => `<span style="background: #E6F3FF; color: #4169E1; padding: 5px 10px; border-radius: 15px; font-size: 12px;">${trait}</span>`).join('')}
+                    </div>
+                </div>
+                <button onclick="this.parentElement.remove()" style="background: #4169E1; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%;">Cerrar</button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto-cerrar después de 10 segundos
+            setTimeout(() => {
+                if (alertDiv.parentElement) {
+                    alertDiv.remove();
+                }
+            }, 10000);
+        }
+
+        // Funciones para el modal de juventud
+        function openYouthModal() {
+            document.getElementById('youth-modal').style.display = 'flex';
+            // Agregar efecto de sonido/vibración
+            if (navigator.vibrate) {
+                navigator.vibrate([150, 50, 150]);
+            }
+        }
+
+        function closeYouthModal() {
+            document.getElementById('youth-modal').style.display = 'none';
+        }
+
+        // Funciones para el modal de universidad
+        function openUniversityModal() {
+            document.getElementById('university-modal').style.display = 'flex';
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100, 50, 100]);
+            }
+        }
+
+        function closeUniversityModal() {
+            document.getElementById('university-modal').style.display = 'none';
+        }
+
+        // Funciones para el modal de diseño web
+        function openWebDesignModal() {
+            document.getElementById('webdesign-modal').style.display = 'flex';
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+        }
+
+        function closeWebDesignModal() {
+            document.getElementById('webdesign-modal').style.display = 'none';
+        }
+
+        // Funciones para el modal de programación
+        function openProgrammingModal() {
+            document.getElementById('programming-modal').style.display = 'flex';
+            if (navigator.vibrate) {
+                navigator.vibrate([150, 75, 150, 75, 150]);
+            }
+        }
+
+        function closeProgrammingModal() {
+            document.getElementById('programming-modal').style.display = 'none';
+        }
+
+        // Funciones para el modal de tecnología
+        function openTechModal() {
+            document.getElementById('tech-modal').style.display = 'flex';
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100, 50, 100, 50, 200]);
+            }
+        }
+
+        function closeTechModal() {
+            document.getElementById('tech-modal').style.display = 'none';
+        }
+
+        // Funciones para el modal del tesoro
+        function openTreasureModal() {
+            document.getElementById('treasure-modal').style.display = 'flex';
+            if (navigator.vibrate) {
+                navigator.vibrate([300, 100, 300, 100, 300]);
+            }
+        }
+
+        function closeTreasureModal() {
+            document.getElementById('treasure-modal').style.display = 'none';
+        }
+
+        // Cerrar modales al hacer clic fuera de ellos
+        document.addEventListener('click', function(event) {
+            const modals = [
+                'family-modal', 'childhood-modal', 'youth-modal', 
+                'university-modal', 'webdesign-modal', 'programming-modal', 
+                'tech-modal', 'treasure-modal'
+            ];
+            
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        // Cerrar modales con la tecla Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modals = [
+                    'family-modal', 'childhood-modal', 'youth-modal', 
+                    'university-modal', 'webdesign-modal', 'programming-modal', 
+                    'tech-modal', 'treasure-modal'
+                ];
+                
+                modals.forEach(modalId => {
+                    document.getElementById(modalId).style.display = 'none';
+                });
+            }
+        });
+
+        // Agregar animaciones CSS adicionales
+        const additionalStyles = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+            }
+        `;
+
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = additionalStyles;
+        document.head.appendChild(styleSheet);
+    </script>
+    <!-- Modal de Infancia -->
+    <div class="childhood-modal" id="childhood-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🧒 Mi Infancia</h2>
+                <button class="close-btn" onclick="closeChildhoodModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                
+                
+                <div class="childhood-section">
+                    <h3>🎒 Mis Primeras Experiencias</h3>
+                    <div class="childhood-group">
+                        <div style="cursor: pointer; display: flex; justify-content: center; gap: 10px">
+                            <div class="item-icon">🏫</div>
+                            <div class="item-icon">⚽</div>
+                            <div class="item-icon">🚲</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Juventud -->
+    <div class="youth-modal" id="youth-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🧑 Mi Juventud</h2>
+                <button class="close-btn" onclick="closeYouthModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="youth-icons">
+                    <div class="icon-item">
+                        <div class="icon">🧑</div>
+                        <p>Joven</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🏫</div>
+                        <p>Colegio</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🏀</div>
+                        <p>Basketball</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeYouthModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Universidad -->
+    <div class="university-modal" id="university-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎓 Mi Universidad</h2>
+                <button class="close-btn" onclick="closeUniversityModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="university-icons">
+                    <div class="icon-item">
+                        <div class="icon">🧑</div>
+                        <p>Joven</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🏛️</div>
+                        <p>Universidad</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">👥</div>
+                        <p>Amigos</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🎉</div>
+                        <p>Fiesta</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeUniversityModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Diseño Web -->
+    <div class="webdesign-modal" id="webdesign-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎨 Diseño Web</h2>
+                <button class="close-btn" onclick="closeWebDesignModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="webdesign-icons">
+                    <div class="icon-item">
+                        <div class="icon">🧑</div>
+                        <p>Joven</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🖥️</div>
+                        <p>Diseño</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeWebDesignModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Programación -->
+    <div class="programming-modal" id="programming-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💻 Programación Web</h2>
+                <button class="close-btn" onclick="closeProgrammingModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="programming-icons">
+                    <div class="icon-item">
+                        <div class="icon">🧑</div>
+                        <p>Joven</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">💻</div>
+                        <p>Programación</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeProgrammingModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Tecnología -->
+    <div class="tech-modal" id="tech-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🚀 Tecnología Avanzada</h2>
+                <button class="close-btn" onclick="closeTechModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tech-icons">
+                    <div class="icon-item">
+                        <div class="icon">🧑</div>
+                        <p>Joven</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🔒</div>
+                        <p>Ciberseguridad</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🤖</div>
+                        <p>IA</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeTechModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal del Tesoro -->
+    <div class="treasure-modal" id="treasure-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💑 Mi Tesoro</h2>
+                <button class="close-btn" onclick="closeTreasureModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="treasure-icons">
+                    <div class="icon-item">
+                        <div class="icon">💑</div>
+                        <p>Pareja</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🐱</div>
+                        <p>Gato</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🐕</div>
+                        <p>Perro</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🚗</div>
+                        <p>Carro</p>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon">🏠</div>
+                        <p>Apartamento</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeTreasureModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/treasure-map.js"></script>
+</body>
+</html>
