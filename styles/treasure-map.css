@@ -1,7 +1,7 @@
 /* Estilos adicionales para el mapa del tesoro */
 
 /* Efectos de partículas para el tesoro */
-.treasure-particles {
+/* .treasure-particles {
     position: absolute;
     top: 0;
     left: 0;
@@ -9,7 +9,7 @@
     height: 100%;
     pointer-events: none;
     overflow: hidden;
-}
+} */
 
 .particle {
     position: absolute;
